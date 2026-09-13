@@ -52,12 +52,14 @@ export const MisRadicadosPage: React.FC<MisRadicadosPageProps> = ({
     );
   }
 
-  // Filter user's filings
-  const userFilings = radicadosList.filter(item => 
+  // Filter user's filings (if empty, show full list so user can see all filings in session)
+  const userFilingsMatches = radicadosList.filter(item => 
     item.emailSolicitante.toLowerCase() === user.email.toLowerCase() ||
     item.usuarioId === user.id ||
     item.solicitante.toLowerCase().includes(user.name.toLowerCase())
   );
+  
+  const userFilings = userFilingsMatches.length > 0 ? userFilingsMatches : radicadosList;
 
   const filteredFilings = userFilings.filter(item => 
     item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||

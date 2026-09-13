@@ -15,7 +15,8 @@ import {
   FolderOpen, 
   Phone, 
   Lock,
-  FileText
+  FileText,
+  Image
 } from 'lucide-react';
 import type { RadicacionMode } from '../types/radicacion';
 
@@ -224,6 +225,17 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigateTab }) => {
               <div>
                 <strong>Archivo Word (.docx)</strong>
                 <span>Documentos editables con anexos</span>
+              </div>
+            </div>
+
+            <div 
+              className="format-pill-item"
+              onClick={() => onNavigateTab('radicar', { mode: 'imagen' })}
+            >
+              <Image size={18} color="#16a34a" />
+              <div>
+                <strong>Imagen / Fotografía (.jpg, .jpeg)</strong>
+                <span>Escaneos, fotos y capturas de pantalla</span>
               </div>
             </div>
           </div>
