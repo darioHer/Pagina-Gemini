@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
-import { Navbar } from './components/Navbar';
+import { Navbar, type NavTab } from './components/Navbar';
 import { LoginModal } from './components/LoginModal';
 import { RadicarDocumentoForm } from './components/RadicarDocumentoForm';
 import { ComprobanteRadicacionModal } from './components/ComprobanteRadicacionModal';
 import { MisRadicadosPage } from './components/MisRadicadosPage';
+import { AdminPanelPage } from './components/AdminPanelPage';
 import { HomePage } from './pages/HomePage';
 import { ConsultasPage } from './pages/ConsultasPage';
 import { NormativasPage } from './pages/NormativasPage';
@@ -14,7 +15,7 @@ import type { DocumentoRadicado, RadicacionMode } from './types/radicacion';
 const STORAGE_RADICADOS_KEY = 'portal_municipal_radicados_db';
 
 function MainAppContent() {
-  const [activeTab, setActiveTab] = useState<'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas'>('inicio');
+  const [activeTab, setActiveTab] = useState<NavTab>('inicio');
   const [selectedRadicadoId, setSelectedRadicadoId] = useState<string | null>(null);
   const [preselectedMode, setPreselectedMode] = useState<RadicacionMode>('escrito');
   const [preselectedCategory, setPreselectedCategory] = useState<string>('Agua y Alcantarillado');
@@ -107,7 +108,7 @@ function MainAppContent() {
   };
 
   const handleNavigateTab = (
-    tab: 'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas',
+    tab: NavTab,
     options?: { mode?: RadicacionMode; category?: string; query?: string }
   ) => {
     if (options?.mode) setPreselectedMode(options.mode);
@@ -125,7 +126,7 @@ function MainAppContent() {
         handleNavigateTab(tab);
       }} />
 
-      {/* Global Auth Modal for Google */}
+      {/* Global Auth Modal for Google & Email/Password */}
       <LoginModal />
 
       {/* Main Content Area */}
@@ -153,6 +154,8 @@ function MainAppContent() {
             initialSearchTerm={consultasSearchTerm}
             onSelectRadicado={(id) => setSelectedRadicadoId(id)} 
           />
+        ) : activeTab === 'admin-usuarios' ? (
+          <AdminPanelPage />
         ) : (
           <HomePage onNavigateTab={handleNavigateTab} />
         )}

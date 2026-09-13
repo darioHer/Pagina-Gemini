@@ -13,7 +13,8 @@ import {
   Building2,
   FileCheck,
   UserCheck,
-  AlertTriangle
+  AlertTriangle,
+  Image
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { DocumentoRadicado, RadicacionMode, TipoSolicitud } from '../types/radicacion';
@@ -94,7 +95,7 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
   // Drag and drop / file upload
   const handleFileDrop = (
     e: React.DragEvent<HTMLDivElement> | React.ChangeEvent<HTMLInputElement>, 
-    expectedExt: 'pdf' | 'word'
+    expectedExt: 'pdf' | 'word' | 'imagen'
   ) => {
     let files: FileList | null = null;
     if ('dataTransfer' in e) {
@@ -115,6 +116,11 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
 
     if (expectedExt === 'word' && ext !== 'doc' && ext !== 'docx') {
       setErrorMsg('Por favor selecciona un documento de Word válido (.doc o .docx)');
+      return;
+    }
+
+    if (expectedExt === 'imagen' && !['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+      setErrorMsg('Por favor selecciona una imagen válida (.jpg, .jpeg, .png o .webp)');
       return;
     }
 
@@ -144,8 +150,8 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
       return;
     }
 
-    if ((modoRadicacion === 'pdf' || modoRadicacion === 'word') && !uploadedFile) {
-      setErrorMsg(`Debes adjuntar el archivo ${modoRadicacion.toUpperCase()} antes de radicar.`);
+    if ((modoRadicacion === 'pdf' || modoRadicacion === 'word' || modoRadicacion === 'imagen') && !uploadedFile) {
+      setErrorMsg(`Debes adjuntar el archivo de ${modoRadicacion === 'imagen' ? 'IMAGEN (JPG/JPEG)' : modoRadicacion.toUpperCase()} antes de radicar.`);
       return;
     }
 
@@ -280,6 +286,18 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
         >
           <FileCode size={18} />
           <span>Adjuntar Word (.docx)</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mode-segment-btn ${modoRadicacion === 'imagen' ? 'active' : ''}`}
+          onClick={() => {
+            setModoRadicacion('imagen');
+            setUploadedFile(null);
+          }}
+        >
+          <Image size={18} />
+          <span>Adjuntar Imagen (JPG, JPEG)</span>
         </button>
       </div>
 
@@ -427,26 +445,38 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
               <div className="content-upload-pane">
                 {!uploadedFile ? (
                   <div
-                    className={`clean-dropzone ${modoRadicacion === 'pdf' ? 'dropzone-pdf-clean' : 'dropzone-word-clean'}`}
+                    className={`clean-dropzone ${modoRadicacion === 'pdf' ? 'dropzone-pdf-clean' : modoRadicacion === 'word' ? 'dropzone-word-clean' : 'dropzone-image-clean'}`}
                     onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => handleFileDrop(e, modoRadicacion === 'pdf' ? 'pdf' : 'word')}
+                    onDrop={(e) => handleFileDrop(e, modoRadicacion)}
                   >
                     {modoRadicacion === 'pdf' ? (
                       <FileType2 size={38} className="dropzone-icon pdf-color" />
-                    ) : (
+                    ) : modoRadicacion === 'word' ? (
                       <FileCode size={38} className="dropzone-icon word-color" />
+                    ) : (
+                      <Image size={38} className="dropzone-icon image-color" style={{ color: '#16a34a' }} />
                     )}
-                    <h4>Arrastra tu archivo {modoRadicacion === 'pdf' ? 'PDF (.pdf)' : 'Word (.docx)'} aquí</h4>
+                    <h4>
+                      Arrastra tu archivo {
+                        modoRadicacion === 'pdf' ? 'PDF (.pdf)' : 
+                        modoRadicacion === 'word' ? 'Word (.docx)' : 
+                        'Imagen (.jpg, .jpeg, .png, .webp)'
+                      } aquí
+                    </h4>
                     <p>o selecciona desde tu dispositivo (máximo 20 MB)</p>
 
                     <label className="btn-browse-clean">
                       <Upload size={16} />
-                      <span>Examinar {modoRadicacion.toUpperCase()}</span>
+                      <span>Examinar {modoRadicacion === 'imagen' ? 'IMAGEN (JPG/JPEG)' : modoRadicacion.toUpperCase()}</span>
                       <input
                         type="file"
-                        accept={modoRadicacion === 'pdf' ? '.pdf' : '.doc,.docx'}
+                        accept={
+                          modoRadicacion === 'pdf' ? '.pdf' : 
+                          modoRadicacion === 'word' ? '.doc,.docx' : 
+                          '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp'
+                        }
                         className="hidden-file-input"
-                        onChange={(e) => handleFileDrop(e, modoRadicacion === 'pdf' ? 'pdf' : 'word')}
+                        onChange={(e) => handleFileDrop(e, modoRadicacion)}
                       />
                     </label>
                   </div>
@@ -454,7 +484,13 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
                   <div className="file-attached-preview">
                     <div className="file-attached-info">
                       <div className="file-attached-icon">
-                        {uploadedFile.extension === 'pdf' ? <FileType2 size={24} /> : <FileCode size={24} />}
+                        {uploadedFile.extension === 'pdf' ? (
+                          <FileType2 size={24} />
+                        ) : uploadedFile.extension === 'doc' || uploadedFile.extension === 'docx' ? (
+                          <FileCode size={24} />
+                        ) : (
+                          <Image size={24} />
+                        )}
                       </div>
                       <div>
                         <strong className="file-attached-name">{uploadedFile.name}</strong>

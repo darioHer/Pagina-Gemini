@@ -49,6 +49,7 @@ export const ComprobanteRadicacionModal: React.FC<ComprobanteRadicacionModalProp
     switch (modo) {
       case 'word': return 'Archivo Microsoft Word (.docx)';
       case 'pdf': return 'Archivo PDF Digitalizado (.pdf)';
+      case 'imagen': return 'Imagen / Fotografía (.jpg, .jpeg, .png)';
       case 'escrito': return 'Petición Escrita Directa en Línea';
       default: return modo;
     }
