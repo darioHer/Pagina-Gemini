@@ -1,203 +1,195 @@
 import { useState, useEffect } from 'react';
-import { Building2, ShieldCheck, HelpCircle, FileText, Search } from 'lucide-react';
-import { TarjetaTramite } from './components/TarjetaTramite';
+import { AuthProvider } from './context/AuthContext';
+import { Navbar } from './components/Navbar';
+import { LoginModal } from './components/LoginModal';
+import { RadicarDocumentoForm } from './components/RadicarDocumentoForm';
+import { ComprobanteRadicacionModal } from './components/ComprobanteRadicacionModal';
+import { MisRadicadosPage } from './components/MisRadicadosPage';
+import { HomePage } from './pages/HomePage';
 import { ConsultasPage } from './pages/ConsultasPage';
+import { NormativasPage } from './pages/NormativasPage';
 import { DetalleConsultaPage } from './pages/DetalleConsultaPage';
+import type { DocumentoRadicado, RadicacionMode } from './types/radicacion';
 
-export function App() {
-  const [activeTab, setActiveTab] = useState<'inicio' | 'consultas'>('consultas');
+const STORAGE_RADICADOS_KEY = 'portal_municipal_radicados_db';
+
+function MainAppContent() {
+  const [activeTab, setActiveTab] = useState<'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas'>('inicio');
   const [selectedRadicadoId, setSelectedRadicadoId] = useState<string | null>(null);
+  const [preselectedMode, setPreselectedMode] = useState<RadicacionMode>('escrito');
+  const [preselectedCategory, setPreselectedCategory] = useState<string>('Agua y Alcantarillado');
+  const [consultasSearchTerm, setConsultasSearchTerm] = useState<string>('');
+  
+  // Custom radicados list
+  const [radicadosList, setRadicadosList] = useState<DocumentoRadicado[]>([]);
+  const [recentCompletedRadicado, setRecentCompletedRadicado] = useState<DocumentoRadicado | null>(null);
 
-  // Simple route parser for /consultas/:id or hash #/consultas/:id
+  // Initial demo data + localStorage loading
   useEffect(() => {
-    const handleRouteChange = () => {
-      const path = window.location.pathname;
-      const hash = window.location.hash;
-
-      if (path.startsWith('/consultas/') || hash.startsWith('#/consultas/')) {
-        const id = path.startsWith('/consultas/') 
-          ? path.replace('/consultas/', '') 
-          : hash.replace('#/consultas/', '');
-        if (id) {
-          setActiveTab('consultas');
-          setSelectedRadicadoId(id);
-        }
+    try {
+      const saved = localStorage.getItem(STORAGE_RADICADOS_KEY);
+      if (saved) {
+        setRadicadosList(JSON.parse(saved));
+      } else {
+        // Sample default filing
+        const initialSample: DocumentoRadicado[] = [
+          {
+            id: 'RAD-2026-10492',
+            solicitante: 'Carlos Mendoza',
+            emailSolicitante: 'carlos.mendoza@gmail.com',
+            cedulaSolicitante: '1098765432',
+            telefonoSolicitante: '300 555 0192',
+            categoria: 'Agua y Alcantarillado',
+            tipoSolicitud: 'Derecho de Petición',
+            modoRadicacion: 'pdf',
+            asunto: 'Solicitud de intervención por fuga de agua en Calle 45',
+            descripcion: 'Adjunto documento PDF firmado solicitando mantenimiento preventivo de la tubería colectora.',
+            archivoAdjunto: {
+              nombre: 'Solicitud_Fuga_Agua_Firmada.pdf',
+              tipo: 'PDF',
+              tamano: '1.45 MB',
+              extension: 'pdf'
+            },
+            estado: 'En trámite',
+            fechaRadicacion: '2026-09-10 09:30',
+            plazoLegal: '15 días hábiles',
+            respuestaOficial: 'Solicitud asignada a la Dirección de Servicios Públicos y Alcantarillado.',
+            hashSeguridad: '8F9A2B3C1D',
+            proveedorAuth: 'google'
+          },
+          {
+            id: 'RAD-2026-10493',
+            solicitante: 'Carlos Mendoza',
+            emailSolicitante: 'carlos.mendoza@gmail.com',
+            cedulaSolicitante: '1098765432',
+            telefonoSolicitante: '300 555 0192',
+            categoria: 'Alumbrado Público',
+            tipoSolicitud: 'Queja',
+            modoRadicacion: 'word',
+            asunto: 'Reporte técnico por fallo en circuito de luminarias LED',
+            descripcion: 'Adjunto archivo de Word con el informe fotográfico del estado de los postes.',
+            archivoAdjunto: {
+              nombre: 'Reporte_Alumbrado_Luminarias.docx',
+              tipo: 'DOCX',
+              tamano: '2.10 MB',
+              extension: 'docx'
+            },
+            estado: 'Resuelto',
+            fechaRadicacion: '2026-09-02 14:15',
+            plazoLegal: '10 días hábiles',
+            respuestaOficial: 'Cuadrilla sustituyó fotocelda y restableció iluminación.',
+            hashSeguridad: '7A4B1C9D2E',
+            proveedorAuth: 'google'
+          }
+        ];
+        setRadicadosList(initialSample);
+        localStorage.setItem(STORAGE_RADICADOS_KEY, JSON.stringify(initialSample));
       }
-    };
-
-    handleRouteChange();
-    window.addEventListener('popstate', handleRouteChange);
-    window.addEventListener('hashchange', handleRouteChange);
-    return () => {
-      window.removeEventListener('popstate', handleRouteChange);
-      window.removeEventListener('hashchange', handleRouteChange);
-    };
+    } catch (e) {
+      console.error('Error initializing radicados store:', e);
+    }
   }, []);
+
+  // Sync to local storage
+  const saveRadicados = (newList: DocumentoRadicado[]) => {
+    setRadicadosList(newList);
+    try {
+      localStorage.setItem(STORAGE_RADICADOS_KEY, JSON.stringify(newList));
+    } catch (e) {
+      console.error('Error saving to storage:', e);
+    }
+  };
+
+  const handleRadicacionSuccess = (newRadicado: DocumentoRadicado) => {
+    const updated = [newRadicado, ...radicadosList];
+    saveRadicados(updated);
+    setRecentCompletedRadicado(newRadicado);
+  };
+
+  const handleNavigateTab = (
+    tab: 'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas',
+    options?: { mode?: RadicacionMode; category?: string; query?: string }
+  ) => {
+    if (options?.mode) setPreselectedMode(options.mode);
+    if (options?.category) setPreselectedCategory(options.category);
+    if (options?.query !== undefined) setConsultasSearchTerm(options.query);
+    setSelectedRadicadoId(null);
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="app-container">
-      {/* Barra superior gubernamental */}
-      <div className="top-bar-institucional">
-        <div className="top-bar-branding">
-          <Building2 size={16} />
-          <span>Gobierno Municipal • Atención Ciudadana</span>
-        </div>
-        <span className="top-bar-badge">Portal Oficial</span>
-      </div>
+      {/* Global Navbar */}
+      <Navbar activeTab={activeTab} setActiveTab={(tab) => {
+        handleNavigateTab(tab);
+      }} />
 
-      {/* Encabezado Institucional Principal */}
-      <header className="header-institucional">
-        <div className="header-content">
-          <div className="institucion-badge">
-            <ShieldCheck size={16} />
-            <span>Ventanilla Única de Atención</span>
-          </div>
+      {/* Global Auth Modal for Google */}
+      <LoginModal />
 
-          <h1 className="header-title">
-            Portal Institucional de Servicios y Trámites
-          </h1>
-
-          <p className="header-subtitle">
-            Sistema de consulta, reportes y atención directa para los servicios comunitarios y municipales.
-          </p>
-
-          {/* Navegación por Pestañas */}
-          <nav style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }} aria-label="Navegación principal">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('inicio');
-                setSelectedRadicadoId(null);
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.6rem 1.25rem',
-                borderRadius: '8px',
-                border: '1px solid',
-                borderColor: activeTab === 'inicio' ? '#ffffff' : 'rgba(255, 255, 255, 0.2)',
-                backgroundColor: activeTab === 'inicio' ? '#ffffff' : 'rgba(255, 255, 255, 0.1)',
-                color: activeTab === 'inicio' ? '#003399' : '#ffffff',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <FileText size={18} />
-              <span>Servicios y Trámites</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('consultas');
-                setSelectedRadicadoId(null);
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.6rem 1.25rem',
-                borderRadius: '8px',
-                border: '1px solid',
-                borderColor: activeTab === 'consultas' ? '#ffffff' : 'rgba(255, 255, 255, 0.2)',
-                backgroundColor: activeTab === 'consultas' ? '#ffffff' : 'rgba(255, 255, 255, 0.1)',
-                color: activeTab === 'consultas' ? '#003399' : '#ffffff',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <Search size={18} />
-              <span>Consulta PQRS</span>
-            </button>
-          </nav>
-        </div>
-      </header>
-
-      {/* Contenido Principal */}
+      {/* Main Content Area */}
       <main className="main-content">
         {selectedRadicadoId ? (
           <DetalleConsultaPage 
             id={selectedRadicadoId} 
             onBack={() => setSelectedRadicadoId(null)} 
           />
+        ) : activeTab === 'radicar' ? (
+          <RadicarDocumentoForm 
+            onSuccessRadicado={handleRadicacionSuccess} 
+            initialMode={preselectedMode}
+            initialCategory={preselectedCategory}
+          />
+        ) : activeTab === 'mis-radicados' ? (
+          <MisRadicadosPage 
+            radicadosList={radicadosList} 
+            onFileNew={() => handleNavigateTab('radicar')} 
+          />
+        ) : activeTab === 'normativas' ? (
+          <NormativasPage />
         ) : activeTab === 'consultas' ? (
           <ConsultasPage 
+            initialSearchTerm={consultasSearchTerm}
             onSelectRadicado={(id) => setSelectedRadicadoId(id)} 
           />
         ) : (
-          <>
-            {/* Encabezado de Sección: Respuestas */}
-            <section className="seccion-respuestas">
-              <div className="seccion-titulo-container">
-                <div className="seccion-titulo-bar"></div>
-                <h2 className="seccion-titulo">Respuestas</h2>
-              </div>
-              <p className="seccion-descripcion">
-                Seleccione una de las categorías principales para obtener respuesta inmediata a reportes, consultar horarios o solicitar atención técnica municipal.
-              </p>
-            </section>
-
-            {/* Grilla de 3 Tarjetas de Trámite */}
-            <section className="grid-tarjetas" aria-label="Tarjetas de trámites y respuestas">
-              <TarjetaTramite
-                titulo="Agua y Alcantarillado"
-                descripcion="Reporte e información sobre fugas de agua en la red pública, aviso de cortes del suministro y mantenimiento del sistema de alcantarillado municipal."
-                categoria="Servicios Básicos"
-              />
-
-              <TarjetaTramite
-                titulo="Recolección de Basura"
-                descripcion="Consulta de rutas y horarios oficiales de recolección, reporte de acumulación inusual de residuos y atención prioritaria a puntos críticos."
-                categoria="Limpia y Medio Ambiente"
-              />
-
-              <TarjetaTramite
-                titulo="Alumbrado Público"
-                descripcion="Atención a reportes de lámparas apagadas o deficientes, mantenimiento preventivo de luminarias y reparación de postes caídos o dañados."
-                categoria="Infraestructura Urbana"
-              />
-            </section>
-
-            {/* Bloque informativo secundario */}
-            <div 
-              style={{ 
-                backgroundColor: '#ffffff', 
-                border: '1px solid #e2e8f0', 
-                borderRadius: '12px', 
-                padding: '1.5rem', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '1rem',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-              }}
-            >
-              <HelpCircle size={32} color="#003399" style={{ flexShrink: 0 }} />
-              <div>
-                <h4 style={{ color: '#003399', fontWeight: 700, fontSize: '1rem', marginBottom: '0.2rem' }}>
-                  ¿Necesitas apoyo adicional con tu trámite?
-                </h4>
-                <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                  Puedes comunicarte a la línea gratuita de atención ciudadana municipal 01-800-RESPUESTA las 24 horas.
-                </p>
-              </div>
-            </div>
-          </>
+          <HomePage onNavigateTab={handleNavigateTab} />
         )}
       </main>
 
-      {/* Pie de página institucional */}
+      {/* Certificate Modal if a filing was just completed */}
+      {recentCompletedRadicado && (
+        <ComprobanteRadicacionModal
+          radicado={recentCompletedRadicado}
+          onClose={() => setRecentCompletedRadicado(null)}
+          onViewMyFilings={() => {
+            setRecentCompletedRadicado(null);
+            handleNavigateTab('mis-radicados');
+          }}
+          onFileNew={() => {
+            setRecentCompletedRadicado(null);
+            handleNavigateTab('radicar');
+          }}
+        />
+      )}
+
+      {/* Footer */}
       <footer className="footer-institucional">
         <div className="footer-content">
-          <p className="footer-branding">Gobierno Municipal • Portal de Respuestas Ciudadanas</p>
-          <p>© 2026 Todos los derechos reservados. Plataforma de Atención Pública.</p>
+          <p className="footer-branding">Alcaldía Municipal • Ventanilla Única de Atención Ciudadana</p>
+          <p>© 2026 Todos los derechos reservados. Plataforma Oficial de Radicación y Trámites Electrónicos.</p>
         </div>
       </footer>
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <MainAppContent />
+    </AuthProvider>
   );
 }
 
