@@ -8,13 +8,14 @@ import { MisRadicadosPage } from './components/MisRadicadosPage';
 import { HomePage } from './pages/HomePage';
 import { ConsultasPage } from './pages/ConsultasPage';
 import { NormativasPage } from './pages/NormativasPage';
+import { AdminPanel } from './pages/AdminPanel';
 import { DetalleConsultaPage } from './pages/DetalleConsultaPage';
 import type { DocumentoRadicado, RadicacionMode } from './types/radicacion';
 
 const STORAGE_RADICADOS_KEY = 'portal_municipal_radicados_db';
 
 function MainAppContent() {
-  const [activeTab, setActiveTab] = useState<'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas'>('inicio');
+  const [activeTab, setActiveTab] = useState<'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas' | 'admin'>('inicio');
   const [selectedRadicadoId, setSelectedRadicadoId] = useState<string | null>(null);
   const [preselectedMode, setPreselectedMode] = useState<RadicacionMode>('escrito');
   const [preselectedCategory, setPreselectedCategory] = useState<string>('Agua y Alcantarillado');
@@ -107,7 +108,7 @@ function MainAppContent() {
   };
 
   const handleNavigateTab = (
-    tab: 'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas',
+    tab: 'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas' | 'admin',
     options?: { mode?: RadicacionMode; category?: string; query?: string }
   ) => {
     if (options?.mode) setPreselectedMode(options.mode);
@@ -148,6 +149,8 @@ function MainAppContent() {
           />
         ) : activeTab === 'normativas' ? (
           <NormativasPage />
+        ) : activeTab === 'admin' ? (
+          <AdminPanel />
         ) : activeTab === 'consultas' ? (
           <ConsultasPage 
             initialSearchTerm={consultasSearchTerm}

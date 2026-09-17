@@ -18,6 +18,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import type { DocumentoRadicado, RadicacionMode, TipoSolicitud } from '../types/radicacion';
 import { checkDuplicatePetition, savePetitionToSupabase } from '../services/supabaseService';
+import { ocrExtractText } from '../services/aiService';
 
 interface RadicarDocumentoFormProps {
   onSuccessRadicado: (radicado: DocumentoRadicado) => void;
@@ -91,6 +92,9 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
     }
   };
 
+  const [isOcrExtracting, setIsOcrExtracting] = useState<boolean>(false);
+  const [ocrSuccessMsg, setOcrSuccessMsg] = useState<string | null>(null);
+
   // Drag and drop / file upload
   const handleFileDrop = (
     e: React.DragEvent<HTMLDivElement> | React.ChangeEvent<HTMLInputElement>, 
@@ -108,8 +112,9 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
     const file = files[0];
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
 
-    if (expectedExt === 'pdf' && ext !== 'pdf') {
-      setErrorMsg('Por favor selecciona un archivo con extensión .pdf');
+    const validPdfAndImages = ['pdf', 'png', 'jpg', 'jpeg', 'webp'];
+    if (expectedExt === 'pdf' && !validPdfAndImages.includes(ext)) {
+      setErrorMsg('Por favor selecciona un archivo PDF o imagen (.pdf, .png, .jpg, .webp)');
       return;
     }
 
@@ -119,6 +124,7 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
     }
 
     setErrorMsg(null);
+    setOcrSuccessMsg(null);
     const sizeInMb = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
 
     setUploadedFile({
@@ -127,6 +133,27 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
       size: sizeInMb,
       extension: ext
     });
+  };
+
+  const handleRunOCR = async () => {
+    if (!uploadedFile) return;
+    setIsOcrExtracting(true);
+    setErrorMsg(null);
+    setOcrSuccessMsg(null);
+    try {
+      const result = await ocrExtractText(uploadedFile.file);
+      if (result.success && result.text) {
+        setDescripcionTexto(prev => prev ? `${prev}\n\n[Texto extraído por Gemini OCR de ${uploadedFile.name}]:\n${result.text}` : result.text);
+        setOcrSuccessMsg(`✅ Texto extraído exitosamente con Gemini OCR (${result.text.length} caracteres).`);
+      } else {
+        setErrorMsg(result.error || 'No se pudo extraer texto del archivo mediante OCR.');
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setErrorMsg(`Error ejecutando OCR: ${msg}`);
+    } finally {
+      setIsOcrExtracting(false);
+    }
   };
 
   // Submit handler
@@ -264,10 +291,11 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
           onClick={() => {
             setModoRadicacion('pdf');
             setUploadedFile(null);
+            setOcrSuccessMsg(null);
           }}
         >
           <FileType2 size={18} />
-          <span>Adjuntar PDF (.pdf)</span>
+          <span>Adjuntar PDF / Imagen</span>
         </button>
 
         <button
@@ -436,49 +464,85 @@ export const RadicarDocumentoForm: React.FC<RadicarDocumentoFormProps> = ({
                     ) : (
                       <FileCode size={38} className="dropzone-icon word-color" />
                     )}
-                    <h4>Arrastra tu archivo {modoRadicacion === 'pdf' ? 'PDF (.pdf)' : 'Word (.docx)'} aquí</h4>
+                    <h4>Arrastra tu archivo {modoRadicacion === 'pdf' ? 'PDF o Imagen (PDF, PNG, JPG, WEBP)' : 'Word (.docx)'} aquí</h4>
                     <p>o selecciona desde tu dispositivo (máximo 20 MB)</p>
 
                     <label className="btn-browse-clean">
                       <Upload size={16} />
-                      <span>Examinar {modoRadicacion.toUpperCase()}</span>
+                      <span>Examinar {modoRadicacion === 'pdf' ? 'PDF / Imagen' : 'WORD'}</span>
                       <input
                         type="file"
-                        accept={modoRadicacion === 'pdf' ? '.pdf' : '.doc,.docx'}
+                        accept={modoRadicacion === 'pdf' ? '.pdf,.png,.jpg,.jpeg,.webp' : '.doc,.docx'}
                         className="hidden-file-input"
                         onChange={(e) => handleFileDrop(e, modoRadicacion === 'pdf' ? 'pdf' : 'word')}
                       />
                     </label>
                   </div>
                 ) : (
-                  <div className="file-attached-preview">
-                    <div className="file-attached-info">
-                      <div className="file-attached-icon">
-                        {uploadedFile.extension === 'pdf' ? <FileType2 size={24} /> : <FileCode size={24} />}
+                  <div>
+                    <div className="file-attached-preview">
+                      <div className="file-attached-info">
+                        <div className="file-attached-icon">
+                          {['pdf', 'png', 'jpg', 'jpeg', 'webp'].includes(uploadedFile.extension) ? <FileType2 size={24} /> : <FileCode size={24} />}
+                        </div>
+                        <div>
+                          <strong className="file-attached-name">{uploadedFile.name}</strong>
+                          <span className="file-attached-meta">{uploadedFile.size} • Archivo validado</span>
+                        </div>
                       </div>
-                      <div>
-                        <strong className="file-attached-name">{uploadedFile.name}</strong>
-                        <span className="file-attached-meta">{uploadedFile.size} • Archivo validado</span>
-                      </div>
+                      <button
+                        type="button"
+                        className="btn-file-attached-remove"
+                        onClick={() => {
+                          setUploadedFile(null);
+                          setOcrSuccessMsg(null);
+                        }}
+                        title="Quitar archivo adjunto"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      className="btn-file-attached-remove"
-                      onClick={() => setUploadedFile(null)}
-                      title="Quitar archivo adjunto"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+
+                    {['pdf', 'png', 'jpg', 'jpeg', 'webp'].includes(uploadedFile.extension) && (
+                      <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <button
+                          type="button"
+                          onClick={handleRunOCR}
+                          disabled={isOcrExtracting}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            padding: '0.5rem 1rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            borderRadius: '0.5rem',
+                            backgroundColor: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1px solid #bfdbfe',
+                            cursor: isOcrExtracting ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <span>{isOcrExtracting ? '⏳ Ejecutando Gemini OCR...' : '🔍 Extraer texto con Gemini OCR'}</span>
+                        </button>
+                        {ocrSuccessMsg && (
+                          <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 500, backgroundColor: '#f0fdf4', padding: '0.4rem 0.6rem', borderRadius: '0.375rem', border: '1px solid #bbf7d0' }}>
+                            {ocrSuccessMsg}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 <div className="form-group-clean" style={{ marginTop: '0.85rem' }}>
-                  <label htmlFor="input-resumen">Notas u observaciones complementarias (Opcional)</label>
+                  <label htmlFor="input-resumen">Texto extraído / Notas u observaciones complementarias</label>
                   <textarea
                     id="input-resumen"
                     className="textarea-clean-sm"
-                    rows={2}
-                    placeholder="Detalles sobre anexos, folios o contexto adicional..."
+                    rows={4}
+                    placeholder="El texto extraído por Gemini OCR o detalles complementarios aparecerán aquí..."
                     value={descripcionTexto}
                     onChange={(e) => setDescripcionTexto(e.target.value)}
                   />

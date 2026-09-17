@@ -23,6 +23,7 @@ interface AuthContextType {
   signInWithGoogleOAuth: () => Promise<void>;
   logout: () => Promise<void>;
   executeAfterAuth: (action: () => void) => void;
+  switchRole: (roleId: string, roleName?: string) => Promise<void>;
 }
 
 const STORAGE_KEY = 'portal_municipal_google_user_session';
@@ -167,6 +168,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveUserSession(null);
   };
 
+  const switchRole = async (roleId: string, roleName?: string) => {
+    if (!user) return;
+    const computedRoleName = roleName || (
+      roleId === 'admin' || roleId === 'administrador' || roleId === 'admin_municipal' ? 'Administrador del Sistema' :
+      roleId === 'funcionario_alcaldia' ? 'Funcionario de Atención Ciudadana' :
+      roleId === 'analista_pqrs' ? 'Analista Técnico de Servicios' :
+      roleId === 'secretario' ? 'Secretario Dependencia' : 'Ciudadano General'
+    );
+
+    const updatedUser: User = {
+      ...user,
+      roleId,
+      roleName: computedRoleName
+    };
+
+    // Update in Supabase
+    try {
+      await supabase
+        .from('usuarios')
+        .update({ role_id: roleId, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+    } catch (e) {
+      console.warn('Notice updating user role in Supabase:', e);
+    }
+
+    saveUserSession(updatedUser);
+  };
+
   const executeAfterAuth = (action: () => void) => {
     if (user) {
       action();
@@ -185,7 +214,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithGoogle,
         signInWithGoogleOAuth,
         logout,
-        executeAfterAuth
+        executeAfterAuth,
+        switchRole
       }}
     >
       {children}

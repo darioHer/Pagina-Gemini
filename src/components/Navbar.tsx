@@ -12,8 +12,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 interface NavbarProps {
-  activeTab: 'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas';
-  setActiveTab: (tab: 'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas') => void;
+  activeTab: 'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas' | 'admin';
+  setActiveTab: (tab: 'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas' | 'admin') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
@@ -125,6 +125,21 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                       <span>Normativas y Políticas Supabase</span>
                     </button>
 
+                    {(user?.roleId === 'admin' || user?.roleId === 'administrador' || user?.roleId === 'admin_municipal') && (
+                      <button
+                        type="button"
+                        className="menu-item-btn"
+                        style={{ color: '#b45309', fontWeight: 600 }}
+                        onClick={() => {
+                          setActiveTab('admin');
+                          setShowProfileMenu(false);
+                        }}
+                      >
+                        <Shield size={16} color="#b45309" />
+                        <span>Panel Administrativo</span>
+                      </button>
+                    )}
+
                     <div className="menu-divider" />
 
                     <button
@@ -191,6 +206,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             <Search size={17} />
             <span>Consultar Estado</span>
           </button>
+
+          {(user?.roleId === 'admin' || user?.roleId === 'administrador' || user?.roleId === 'admin_municipal') && (
+            <button
+              type="button"
+              className={`nav-link-btn ${activeTab === 'admin' ? 'active' : ''}`}
+              style={{ backgroundColor: activeTab === 'admin' ? '#ffffff' : 'rgba(255, 193, 7, 0.25)', color: activeTab === 'admin' ? '#b45309' : '#fff', fontWeight: 600 }}
+              onClick={() => setActiveTab('admin')}
+            >
+              <Shield size={17} />
+              <span>Panel Admin</span>
+            </button>
+          )}
         </nav>
       </div>
     </header>

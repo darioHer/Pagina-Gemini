@@ -34,7 +34,19 @@ CREATE TABLE IF NOT EXISTS usuarios (
   telefono TEXT,
   role_id TEXT REFERENCES roles(id) DEFAULT 'ciudadano',
   google_sub_id TEXT,
+  verificado BOOLEAN DEFAULT TRUE,
+  password_hash TEXT,
+  notas_admin TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3.1 TABLA DE CONFIGURACIÓN DEL SISTEMA (APIs, Rol de Sistema, Temperatura)
+CREATE TABLE IF NOT EXISTS configuracion_sistema (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  clave TEXT UNIQUE NOT NULL,
+  valor TEXT NOT NULL,
+  descripcion TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -283,11 +295,8 @@ CREATE POLICY "Permitir consultar peticiones" ON peticiones_pqrs FOR SELECT USIN
 DROP POLICY IF EXISTS "Permitir actualizar peticiones" ON peticiones_pqrs;
 CREATE POLICY "Permitir actualizar peticiones" ON peticiones_pqrs FOR UPDATE USING (true);
 
--- Respuestas PQRS: lectura y registro
-ALTER TABLE respuestas_pqrs ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Permitir lectura de respuestas a todos" ON respuestas_pqrs;
-CREATE POLICY "Permitir lectura de respuestas a todos" ON respuestas_pqrs FOR SELECT USING (true);
-
-DROP POLICY IF EXISTS "Permitir registrar respuestas" ON respuestas_pqrs;
-CREATE POLICY "Permitir registrar respuestas" ON respuestas_pqrs FOR INSERT WITH CHECK (true);
+-- Configuración del sistema: permitir lectura y actualización por administradores
+ALTER TABLE configuracion_sistema ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir acceso a configuracion_sistema" ON configuracion_sistema;
+CREATE POLICY "Permitir acceso a configuracion_sistema" ON configuracion_sistema FOR ALL USING (true) WITH CHECK (true);
 

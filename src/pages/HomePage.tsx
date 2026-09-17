@@ -15,19 +15,45 @@ import {
   FolderOpen, 
   Phone, 
   Lock,
-  FileText
+  FileText,
+  Shield,
+  CheckCircle
 } from 'lucide-react';
 import type { RadicacionMode } from '../types/radicacion';
+import { useAuth } from '../context/AuthContext';
 
 export interface HomePageProps {
   onNavigateTab: (
-    tab: 'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas', 
+    tab: 'inicio' | 'radicar' | 'mis-radicados' | 'consultas' | 'normativas' | 'admin', 
     options?: { mode?: RadicacionMode; category?: string; query?: string }
   ) => void;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ onNavigateTab }) => {
+  const { user, switchRole, openAuthModal } = useAuth();
   const [trackerInput, setTrackerInput] = useState<string>('');
+  const [roleSwitching, setRoleSwitching] = useState(false);
+  const [roleToast, setRoleToast] = useState<string | null>(null);
+
+  const testRoles = [
+    { id: 'admin', nombre: 'Administrador del Sistema', icon: '🛡️', badge: 'Acceso Total + APIs' },
+    { id: 'funcionario_alcaldia', nombre: 'Funcionario de Atención', icon: '🏛️', badge: 'Revisión PQRS' },
+    { id: 'analista_pqrs', nombre: 'Analista Técnico', icon: '🔧', badge: 'Gestión Servicios' },
+    { id: 'secretario', nombre: 'Secretario Dependencia', icon: '📋', badge: 'Validación' },
+    { id: 'ciudadano', nombre: 'Ciudadano General', icon: '👤', badge: 'Radicación Estándar' },
+  ];
+
+  const handleRoleChange = async (newRoleId: string, roleName: string) => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    setRoleSwitching(true);
+    await switchRole(newRoleId, roleName);
+    setRoleSwitching(false);
+    setRoleToast(`Rol cambiado a: ${roleName}`);
+    setTimeout(() => setRoleToast(null), 3500);
+  };
 
   const handleTrackerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +115,117 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigateTab }) => {
 
   return (
     <div className="home-clean-layout">
+      {/* NOTIFICACIÓN TOAST DE CAMBIO DE ROL */}
+      {roleToast && (
+        <div style={{
+          position: 'fixed',
+          top: '80px',
+          right: '1.5rem',
+          zIndex: 9999,
+          background: '#003399',
+          color: '#ffffff',
+          padding: '0.75rem 1.25rem',
+          borderRadius: '8px',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
+        }}>
+          <CheckCircle size={18} color="#4ade80" />
+          <span>{roleToast}</span>
+        </div>
+      )}
+
+      {/* BANNER DE PRUEBAS: CAMBIO RÁPIDO DE ROL DEL USUARIO */}
+      <section style={{
+        background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)',
+        border: '1px solid #bfdbfe',
+        borderRadius: '12px',
+        padding: '1rem 1.25rem',
+        marginBottom: '1.5rem',
+        boxShadow: '0 2px 6px rgba(0, 51, 153, 0.05)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.2rem' }}>🧪</span>
+            <div>
+              <strong style={{ fontSize: '0.95rem', color: '#1e3a8a' }}>Selector de Roles para Pruebas (Gobernanza)</strong>
+              <div style={{ fontSize: '0.8rem', color: '#475569' }}>
+                {user ? (
+                  <>Usuario activo: <strong>{user.name}</strong> • Rol actual: <span style={{ background: '#dbeafe', color: '#1e40af', padding: '0.15rem 0.5rem', borderRadius: '12px', fontWeight: 600 }}>{user.roleName || user.roleId}</span></>
+                ) : (
+                  <>Inicia sesión para alternar y probar los permisos de cada rol en Supabase</>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {user && (user.roleId === 'admin' || user.roleId === 'administrador' || user.roleId === 'admin_municipal') && (
+            <button
+              type="button"
+              onClick={() => onNavigateTab('admin')}
+              style={{
+                background: '#003399',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0.45rem 0.9rem',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <Shield size={14} />
+              <span>Abrir Panel Admin</span>
+            </button>
+          )}
+        </div>
+
+        {/* Botones de roles para pruebas */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.6rem' }}>
+          {testRoles.map((r) => {
+            const isActive = user?.roleId === r.id;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                disabled={roleSwitching}
+                onClick={() => handleRoleChange(r.id, r.nombre)}
+                style={{
+                  padding: '0.6rem 0.75rem',
+                  borderRadius: '8px',
+                  border: isActive ? '2px solid #003399' : '1px solid #cbd5e1',
+                  background: isActive ? '#ffffff' : '#f8fafc',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  boxShadow: isActive ? '0 2px 8px rgba(0,51,153,0.15)' : 'none',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span style={{ fontSize: '1.2rem' }}>{r.icon}</span>
+                <div style={{ overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.83rem', fontWeight: isActive ? 700 : 600, color: isActive ? '#003399' : '#334155', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                    {r.nombre}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: isActive ? '#2563eb' : '#64748b' }}>
+                    {r.badge}
+                  </div>
+                </div>
+                {isActive && <span style={{ marginLeft: 'auto', color: '#003399', fontWeight: 'bold' }}>✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       {/* 1. HERO COMPACTO Y MODERNO */}
       <section className="hero-clean-card">
         <div className="hero-clean-header-badge">
