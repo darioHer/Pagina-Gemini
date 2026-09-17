@@ -125,18 +125,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                       <span>Normativas y Políticas Supabase</span>
                     </button>
 
-                    {(user?.roleId === 'admin' || user?.roleId === 'administrador' || user?.roleId === 'admin_municipal') && (
+                    {(user?.roleId === 'admin' || user?.roleId === 'administrador' || user?.roleId === 'admin_municipal' || user?.roleId === 'funcionario_alcaldia' || user?.roleId === 'analista_pqrs' || user?.roleId === 'secretario') && (
                       <button
                         type="button"
                         className="menu-item-btn"
-                        style={{ color: '#b45309', fontWeight: 600 }}
+                        style={{ color: '#1e3a8a', fontWeight: 600 }}
                         onClick={() => {
                           setActiveTab('admin');
                           setShowProfileMenu(false);
                         }}
                       >
-                        <Shield size={16} color="#b45309" />
-                        <span>Panel Administrativo</span>
+                        <Shield size={16} color="#2563eb" />
+                        <span>Panel de Gestión y Validación</span>
                       </button>
                     )}
 
@@ -194,7 +194,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             className={`nav-link-btn ${activeTab === 'normativas' ? 'active' : ''}`}
             onClick={() => setActiveTab('normativas')}
           >
-            <BookOpen size={17} color={activeTab === 'normativas' ? '#003399' : '#ffffff'} />
+            <BookOpen size={17} />
             <span>Normatividad</span>
           </button>
 
@@ -207,15 +207,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             <span>Consultar Estado</span>
           </button>
 
-          {(user?.roleId === 'admin' || user?.roleId === 'administrador' || user?.roleId === 'admin_municipal') && (
+          {(user?.roleId === 'admin' || user?.roleId === 'administrador' || user?.roleId === 'admin_municipal' || user?.roleId === 'funcionario_alcaldia' || user?.roleId === 'analista_pqrs' || user?.roleId === 'secretario') && (
             <button
               type="button"
               className={`nav-link-btn ${activeTab === 'admin' ? 'active' : ''}`}
-              style={{ backgroundColor: activeTab === 'admin' ? '#ffffff' : 'rgba(255, 193, 7, 0.25)', color: activeTab === 'admin' ? '#b45309' : '#fff', fontWeight: 600 }}
+              style={{ 
+                backgroundColor: activeTab === 'admin' ? '#ffffff' : 'rgba(255, 255, 255, 0.15)', 
+                color: activeTab === 'admin' ? '#1e3a8a' : '#ffffff', 
+                fontWeight: 600,
+                border: activeTab === 'admin' ? '1px solid #bfdbfe' : '1px solid rgba(255,255,255,0.2)'
+              }}
               onClick={() => setActiveTab('admin')}
             >
               <Shield size={17} />
-              <span>Panel Admin</span>
+              <span>Panel Gestión</span>
             </button>
           )}
         </nav>

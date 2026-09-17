@@ -1,23 +1,43 @@
 :root {
-  --azul-institucional: #003399;
-  --azul-institucional-dark: #002266;
-  --azul-institucional-hover: #0044cc;
-  --azul-institucional-light: #e6ecf8;
-  --azul-institucional-soft: #f0f4fc;
+  /* Paleta Cromática Institucional GovTech */
+  --azul-institucional-dark: #0b1329;
+  --azul-institucional: #1e3a8a;
+  --azul-institucional-hover: #1d4ed8;
+  --azul-institucional-light: #eff6ff;
+  --azul-institucional-soft: #f8fafc;
   
-  --bg-page: #f4f6fa;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-light: #dbeafe;
+  
+  --color-emerald: #059669;
+  --color-emerald-light: #ecfdf5;
+  --color-amber: #d97706;
+  --color-amber-light: #fffbeb;
+  --color-rose: #e11d48;
+  --color-rose-light: #fff1f2;
+  
+  --bg-page: #f8fafc;
   --bg-card: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.92);
   --border-color: #e2e8f0;
+  --border-focus: #3b82f6;
   
-  --text-main: #1e293b;
-  --text-muted: #64748b;
+  --text-main: #0f172a;
+  --text-muted: #475569;
   --text-dim: #94a3b8;
   
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --radius-xl: 16px;
   --radius-lg: 12px;
   --radius-md: 8px;
-  --shadow-card: 0 4px 12px rgba(0, 51, 153, 0.06), 0 1px 3px rgba(0, 0, 0, 0.05);
-  --shadow-card-hover: 0 12px 24px rgba(0, 51, 153, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
+  --radius-sm: 6px;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-card-hover: 0 12px 24px -4px rgba(15, 23, 42, 0.1), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
+  --shadow-elevated: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
 }
 
 * {

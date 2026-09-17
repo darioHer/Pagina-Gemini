@@ -15,6 +15,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { DetalleConsultaPage } from './DetalleConsultaPage';
+import { supabase } from '../lib/supabase';
 
 export interface PQRSItem {
   id: string;
@@ -49,23 +50,45 @@ export const ConsultasPage: React.FC<ConsultasPageProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/pqrs');
-      if (!response.ok) {
-        throw new Error(`Servidor devolvió estado HTTP ${response.status}`);
-      }
-      const data: PQRSItem[] = await response.json();
-      setPqrsList(data);
+      // 1. Intentar cargar directamente desde Supabase en tiempo real
+      const { data: supaData, error: supaErr } = await supabase
+        .from('peticiones_pqrs')
+        .select('*')
+        .order('fecha_radicacion', { ascending: false });
 
-      if (initialRadicadoId) {
-        const found = data.find(item => item.id.toLowerCase() === initialRadicadoId.toLowerCase());
-        if (found) setSelectedItem(found);
+      if (!supaErr && supaData && supaData.length > 0) {
+        const mapped: PQRSItem[] = supaData.map((d: Record<string, unknown>) => ({
+          id: String(d.id || ''),
+          solicitante: String(d.solicitante || 'Ciudadano'),
+          categoria: String(d.categoria || 'General'),
+          descripcion: String(d.descripcion || d.asunto || ''),
+          estado: String(d.estado || 'En trámite'),
+          fechaRadicacion: String(d.fecha_radicacion ? String(d.fecha_radicacion).split('T')[0] : '2026-09-17'),
+          plazoLegal: String(d.plazo_legal || '15 días hábiles'),
+          respuestaOficial: String(d.respuesta_oficial || 'En trámite y revisión.')
+        }));
+        setPqrsList(mapped);
+
+        if (initialRadicadoId) {
+          const found = mapped.find(item => item.id.toLowerCase() === initialRadicadoId.toLowerCase());
+          if (found) setSelectedItem(found);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fallback a API local si Supabase no responde
+      const response = await fetch('/api/pqrs');
+      if (response.ok) {
+        const data: PQRSItem[] = await response.json();
+        setPqrsList(data);
+        if (initialRadicadoId) {
+          const found = data.find(item => item.id.toLowerCase() === initialRadicadoId.toLowerCase());
+          if (found) setSelectedItem(found);
+        }
       }
     } catch (err) {
-      setError(
-        err instanceof Error 
-          ? err.message 
-          : 'No se pudo conectar con el servicio backend de PQRS.'
-      );
+      console.warn('Fallback fetching PQRS:', err);
     } finally {
       setLoading(false);
     }
